@@ -36,7 +36,6 @@ const BlacklistedCreatorsPage = () => {
       const result = await invoke<BlacklistedCreator[]>(
         "read_blacklisted_creators"
       );
-      alert("Blacklisted creators: " + JSON.stringify(result));
 
       setBlacklistedCreators(result);
     } catch (error) {
