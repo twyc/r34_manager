@@ -16,6 +16,7 @@ pub struct BlacklistedCreator {
     creator_id: i32,
     reason: String,
     date: String,
+    name: String,
 }
 
 #[derive(Serialize)]
@@ -109,23 +110,66 @@ pub fn delete_creator(id: i32) -> Result<String, String> {
         }
     }
 }
-
 #[tauri::command]
-pub fn create_blacklisted_creator(creator_id: i32, reason: String, date: String) -> Result<String, String> {
-    let conn = get_connection().map_err(|e| e.to_string())?;
+pub fn create_blacklisted_creator(
+    creator_id: i32,
+    reason: String,
+    date: String,
+) -> Result<String, String> {
+    println!("create_blacklisted_creator called with creator_id: {}, reason: {}, date: {}", creator_id, reason, date);
+
+    let conn = get_connection().map_err(|e| {
+        println!("Connection error: {}", e);
+        e.to_string()
+    })?;
+
+    // Validate creator_id
+    let creator_exists: bool = conn
+        .prepare("SELECT EXISTS(SELECT 1 FROM creators WHERE id = ?1)")
+        .map_err(|e| {
+            println!("Prepare error for creator existence check: {}", e);
+            e.to_string()
+        })?
+        .query_row(params![creator_id], |row| row.get(0))
+        .map_err(|e| {
+            println!("Query error for creator existence check: {}", e);
+            e.to_string()
+        })?;
+    println!("Creator existence check result: {}", creator_exists);
+
+    if !creator_exists {
+        println!("Invalid creator ID: {}", creator_id);
+        return Err("Invalid creator ID".to_string());
+    }
+
     conn.execute(
         "INSERT INTO blacklisted_creators (creator_id, reason, date) VALUES (?1, ?2, ?3)",
         params![creator_id, reason, date],
     )
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        println!("Insert error: {}", e);
+        e.to_string()
+    })?;
+
+    println!("Blacklisted creator added successfully");
     Ok("Blacklisted creator added successfully".to_string())
 }
 
+
 #[tauri::command]
 pub fn read_blacklisted_creators() -> Result<Vec<BlacklistedCreator>, String> {
-    let conn = get_connection().map_err(|e| e.to_string())?;
-    let mut stmt = conn.prepare("SELECT id, creator_id, reason, date FROM blacklisted_creators")
-        .map_err(|e| e.to_string())?;
+    let conn = get_connection().map_err(|e| {
+        println!("Connection error: {}", e);
+        e.to_string()
+    })?;
+
+    let mut stmt = conn.prepare(
+        "SELECT bc.id, bc.creator_id, bc.reason, bc.date, c.name 
+         FROM blacklisted_creators bc join creators c on bc.creator_id = c.id",
+    ).map_err(|e| {
+        println!("Prepare error: {}", e);
+        e.to_string()
+    })?;
 
     let blacklisted_creators = stmt
         .query_map([], |row| {
@@ -133,13 +177,18 @@ pub fn read_blacklisted_creators() -> Result<Vec<BlacklistedCreator>, String> {
                 id: row.get(0)?,
                 creator_id: row.get(1)?,
                 reason: row.get(2)?,
-                date: row.get(3)?,
+                date: row.get(3)?, 
+                name: row.get(4)?,
             })
         })
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            println!("Query error: {}", e);
+            e.to_string()
+        })?
         .filter_map(|row| row.ok())
-        .collect();
+        .collect::<Vec<_>>();
 
+    println!("Successfully read blacklisted creators");
     Ok(blacklisted_creators)
 }
 

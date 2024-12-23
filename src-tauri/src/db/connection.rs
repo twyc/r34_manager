@@ -54,7 +54,7 @@ pub fn initialize_database() -> Result<()> {
             creator_id INTEGER NOT NULL,
             reason TEXT,
             date TEXT NOT NULL, 
-            FOREIGN KEY (creator_id) REFERENCES creators(id)
+            FOREIGN KEY (creator_id) REFERENCES creators(id) ON DELETE CASCADE
         );
         "
       )?;

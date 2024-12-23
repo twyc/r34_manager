@@ -14,30 +14,38 @@ type BlacklistedCreator = {
   creator_id: number;
   reason: string;
   date: string;
+  name: string;
 };
 
 const BlacklistedCreatorsPage = () => {
   const [blacklistedCreators, setBlacklistedCreators] = useState<
     BlacklistedCreator[]
   >([]);
-  const [creators, setCreators] = useState<Creator[]>([]); // Store creators for dropdown
-  const [editCreator, setEditCreator] = useState<BlacklistedCreator | null>(
-    null
-  );
+  const [creators, setCreators] = useState<Creator[]>([]);
   const [creatorId, setCreatorId] = useState("");
   const [reason, setReason] = useState("");
   const [date, setDate] = useState("");
 
-  const loadBlacklistedCreators = async () => {
-    const creators: BlacklistedCreator[] = await invoke(
-      "read_blacklisted_creators"
-    );
-    setBlacklistedCreators(creators);
-  };
-
   const loadCreators = async () => {
     const creatorList: Creator[] = await invoke("read_creators");
     setCreators(creatorList);
+  };
+
+  const loadBlacklistedCreators = async () => {
+    try {
+      const result = await invoke<BlacklistedCreator[]>(
+        "read_blacklisted_creators"
+      );
+      alert("Blacklisted creators: " + JSON.stringify(result));
+
+      setBlacklistedCreators(result);
+    } catch (error) {
+      console.error("Error loading blacklisted creators:", error);
+      setInfoModal({
+        visible: true,
+        message: `Failed to load blacklisted creators: ${error}`,
+      });
+    }
   };
 
   const [infoModal, setInfoModal] = useState<{
@@ -50,40 +58,16 @@ const BlacklistedCreatorsPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsedCreatorId = parseInt(creatorId);
-    if (parsedCreatorId <= 0) {
-      setInfoModal({
-        visible: true,
-        message: "Creator ID must be a positive number.",
-      });
-      return;
-    }
-    if (editCreator) {
-      await invoke("update_blacklisted_creator", {
-        id: editCreator.id,
-        creator_id: parsedCreatorId,
-        reason,
-        date,
-      });
-    } else {
+    try {
       await invoke("create_blacklisted_creator", {
-        creator_id: parsedCreatorId,
+        creatorId: parseInt(creatorId),
         reason,
         date,
       });
+      loadBlacklistedCreators();
+    } catch (error) {
+      console.error("Error creating blacklisted creator:", error);
     }
-    setCreatorId("");
-    setReason("");
-    setDate("");
-    setEditCreator(null);
-    loadBlacklistedCreators();
-  };
-
-  const handleEdit = (creator: BlacklistedCreator) => {
-    setEditCreator(creator);
-    setCreatorId(creator.creator_id.toString());
-    setReason(creator.reason);
-    setDate(creator.date);
   };
 
   const handleDelete = async (id: number) => {
@@ -142,7 +126,7 @@ const BlacklistedCreatorsPage = () => {
             type="submit"
             className="px-4 py-2 bg-green-500 text-white rounded-md"
           >
-            {editCreator ? "Update" : "Add"} Blacklisted Creator
+            Blacklist
           </button>
         </div>
       </form>
@@ -152,7 +136,10 @@ const BlacklistedCreatorsPage = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Creator ID
+                ID
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Reason
@@ -171,17 +158,12 @@ const BlacklistedCreatorsPage = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   {creator.creator_id}
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap">{creator.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {creator.reason}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">{creator.date}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleEdit(creator)}
-                    className="px-2 py-1 bg-yellow-500 text-white rounded-md mr-2"
-                  >
-                    Edit
-                  </button>
                   <button
                     onClick={() => handleDelete(creator.id)}
                     className="px-2 py-1 bg-red-500 text-white rounded-md"
