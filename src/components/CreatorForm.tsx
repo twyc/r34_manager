@@ -52,7 +52,7 @@ const CreatorForm = ({
         toast.success("Creator updated successfully!");
       } else {
         await invoke("create_creator", { name, homepage, rate });
-        toast.success("Creator created successfully!");
+        toast.success("Creator added successfully!");
       }
       reloadCreators();
       clearEdit();

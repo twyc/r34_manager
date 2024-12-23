@@ -2,6 +2,7 @@ import "./App.css";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import CreatorsPage from "./pages/CreatorsPage";
 import BlacklistedCreatorsPage from "./pages/BlacklistedCreatorsPage";
+import InterestingLinksPage from "./pages/InterestingLinksPage";
 
 const HomePage = () => {
   return (
@@ -34,6 +35,12 @@ const Header = () => {
         >
           Blacklisted
         </Link>
+        <Link
+          to="/interesting-links"
+          className="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-red-600"
+        >
+          Interesting
+        </Link>
       </nav>
     </header>
   );
@@ -51,6 +58,10 @@ const App = () => {
             <Route
               path="/blacklisted-creators"
               element={<BlacklistedCreatorsPage />}
+            />
+            <Route
+              path="/interesting-links"
+              element={<InterestingLinksPage />}
             />
           </Routes>
         </div>

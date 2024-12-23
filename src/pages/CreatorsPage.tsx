@@ -36,7 +36,6 @@ const CreatorsPage: React.FC = () => {
       const result = await invoke<Creator[]>("read_creators");
 
       setCreators(result);
-      setInfoModal({ visible: true, message: "Creators loaded successfully" });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";

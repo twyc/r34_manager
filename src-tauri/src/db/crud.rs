@@ -18,6 +18,15 @@ pub struct BlacklistedCreator {
     date: String,
 }
 
+#[derive(Serialize)]
+pub struct InterestingLink {
+    pub id: i32,
+    pub url: String,
+    pub source: Option<String>,
+    pub downloaded: bool,
+    pub date: Option<String>,
+}
+
 #[tauri::command]
 pub fn create_creator(name: String, homepage: String, rate: i32) -> Result<String, String> {
     let conn = get_connection().map_err(|e| e.to_string())?;
@@ -157,4 +166,74 @@ pub fn delete_blacklisted_creator(id: i32) -> Result<String, String> {
     conn.execute("DELETE FROM sqlite_sequence WHERE name = 'blacklisted_creators'", [])
         .map_err(|e| e.to_string())?;
     Ok("Blacklisted creator deleted successfully".to_string())
+}
+
+#[tauri::command]
+pub fn create_interesting_link(
+    url: String, 
+    source: Option<String>, 
+    downloaded: bool, 
+    date: Option<String>
+) -> Result<String, String> {
+    let conn = get_connection().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT INTO interesting_links (url, source, downloaded, date) VALUES (?1, ?2, ?3, ?4)",
+        params![url, source, downloaded, date],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok("Interesting link added successfully".to_string())
+}
+
+#[tauri::command]
+pub fn read_interesting_links() -> Result<Vec<InterestingLink>, String> {
+    let conn = get_connection().map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare("SELECT id, url, source, downloaded, date FROM interesting_links")
+        .map_err(|e| e.to_string())?;
+
+    let interesting_links = stmt
+        .query_map([], |row| {
+            Ok(InterestingLink {
+                id: row.get(0)?,
+                url: row.get(1)?,
+                source: row.get(2)?,
+                downloaded: row.get(3)?,
+                date: row.get(4)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(|row| row.ok())
+        .collect();
+
+    Ok(interesting_links)
+}
+
+#[tauri::command]
+pub fn update_interesting_link(
+    id: i32, 
+    url: String, 
+    source: Option<String>, 
+    downloaded: bool, 
+    date: Option<String>
+) -> Result<String, String> {
+    let conn = get_connection().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE interesting_links SET url = ?1, source = ?2, downloaded = ?3, date = ?4 WHERE id = ?5",
+        params![url, source, downloaded, date, id],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok("Interesting link updated successfully".to_string())
+}
+
+#[tauri::command]
+pub fn delete_interesting_link(id: i32) -> Result<String, String> {
+    let conn = get_connection().map_err(|e| e.to_string())?;
+    conn.execute(
+        "DELETE FROM interesting_links WHERE id = ?1",
+        params![id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    conn.execute("DELETE FROM sqlite_sequence WHERE name = 'interesting_links'", [])
+        .map_err(|e| e.to_string())?;
+    Ok("Interesting link deleted successfully".to_string())
 }

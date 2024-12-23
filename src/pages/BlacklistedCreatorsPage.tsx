@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useNavigate } from "react-router-dom";
+import InfoModal from "../components/InfoModal";
+
+type Creator = {
+  id: number;
+  name: string;
+  homepage: string;
+  rate: number;
+};
 
 type BlacklistedCreator = {
   id: number;
@@ -13,13 +20,13 @@ const BlacklistedCreatorsPage = () => {
   const [blacklistedCreators, setBlacklistedCreators] = useState<
     BlacklistedCreator[]
   >([]);
+  const [creators, setCreators] = useState<Creator[]>([]); // Store creators for dropdown
   const [editCreator, setEditCreator] = useState<BlacklistedCreator | null>(
     null
   );
   const [creatorId, setCreatorId] = useState("");
   const [reason, setReason] = useState("");
   const [date, setDate] = useState("");
-  const navigate = useNavigate();
 
   const loadBlacklistedCreators = async () => {
     const creators: BlacklistedCreator[] = await invoke(
@@ -28,11 +35,27 @@ const BlacklistedCreatorsPage = () => {
     setBlacklistedCreators(creators);
   };
 
+  const loadCreators = async () => {
+    const creatorList: Creator[] = await invoke("read_creators");
+    setCreators(creatorList);
+  };
+
+  const [infoModal, setInfoModal] = useState<{
+    visible: boolean;
+    message: string;
+  }>({
+    visible: false,
+    message: "",
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsedCreatorId = parseInt(creatorId);
     if (parsedCreatorId <= 0) {
-      alert("Creator ID must be a positive number.");
+      setInfoModal({
+        visible: true,
+        message: "Creator ID must be a positive number.",
+      });
       return;
     }
     if (editCreator) {
@@ -70,29 +93,36 @@ const BlacklistedCreatorsPage = () => {
 
   useEffect(() => {
     loadBlacklistedCreators();
+    loadCreators();
   }, []);
 
   return (
     <div className="p-6">
-      <button
-        className="px-4 py-2 bg-blue-500 text-white rounded-md mb-4 hover:bg-blue-600"
-        onClick={() => navigate("/")}
-      >
-        Home
-      </button>
+      {infoModal.visible && (
+        <InfoModal
+          title="Information"
+          message={infoModal.message}
+          onOk={() => setInfoModal({ visible: false, message: "" })}
+        />
+      )}
 
       <h1 className="text-2xl font-bold mb-4">Blacklisted Creators</h1>
 
       <form onSubmit={handleSubmit} className="mb-4">
         <div className="flex space-x-4 items-center">
-          <input
-            type="number"
-            placeholder="Creator ID"
+          <select
             value={creatorId}
             onChange={(e) => setCreatorId(e.target.value)}
             className="px-4 py-2 border rounded-md"
             required
-          />
+          >
+            <option value="">Select a Creator</option>
+            {creators.map((creator) => (
+              <option key={creator.id} value={creator.id}>
+                {creator.name} ({creator.id})
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             placeholder="Reason"
@@ -122,9 +152,6 @@ const BlacklistedCreatorsPage = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Creator ID
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -141,7 +168,6 @@ const BlacklistedCreatorsPage = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {blacklistedCreators.map((creator) => (
               <tr key={creator.id}>
-                <td className="px-6 py-4 whitespace-nowrap">{creator.id}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {creator.creator_id}
                 </td>

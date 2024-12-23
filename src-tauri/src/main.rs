@@ -2,15 +2,24 @@ use tauri::{generate_context, Builder};
 mod db;
 
 use db::connection::initialize_database;
-use db::crud::{create_creator, read_creators, update_creator, delete_creator,  create_blacklisted_creator,
+use db::crud::{
+    create_creator, 
+    read_creators, 
+    update_creator, 
+    delete_creator,  
+    create_blacklisted_creator,
     read_blacklisted_creators,
     update_blacklisted_creator,
-    delete_blacklisted_creator};
+    delete_blacklisted_creator,
+    read_interesting_links,
+    create_interesting_link,
+    update_interesting_link,
+    delete_interesting_link,
+};
 
 fn main() {
     println!("Starting application");
     
-    // Test each command is registered
     let commands = vec!["create_creator", "read_creators", "update_creator", "delete_creator"];
     println!("Registered commands: {:?}", commands);
     
@@ -29,7 +38,11 @@ fn main() {
             create_blacklisted_creator,
             read_blacklisted_creators,
             update_blacklisted_creator,
-            delete_blacklisted_creator
+            delete_blacklisted_creator,
+            read_interesting_links,
+            create_interesting_link,
+            update_interesting_link,
+            delete_interesting_link,
         ])
         .setup(|_app| {
             println!("Tauri app setup complete");
