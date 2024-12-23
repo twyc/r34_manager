@@ -2,7 +2,10 @@ use tauri::{generate_context, Builder};
 mod db;
 
 use db::connection::initialize_database;
-use db::crud::{create_creator, read_creators, update_creator, delete_creator};
+use db::crud::{create_creator, read_creators, update_creator, delete_creator,  create_blacklisted_creator,
+    read_blacklisted_creators,
+    update_blacklisted_creator,
+    delete_blacklisted_creator};
 
 
 fn main() {
@@ -23,7 +26,11 @@ fn main() {
             create_creator,
             read_creators,
             update_creator,
-            delete_creator
+            delete_creator,
+            create_blacklisted_creator,
+            read_blacklisted_creators,
+            update_blacklisted_creator,
+            delete_blacklisted_creator
         ])
         .setup(|_app| {
             println!("Tauri app setup complete");

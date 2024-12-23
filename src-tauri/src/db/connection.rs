@@ -3,7 +3,7 @@ use dirs::home_dir;
 
 pub fn get_db_path() -> String {
   let home_path = home_dir().expect("Failed to get home directory");
-  home_path.join(".foxfaps/database.db").to_str().unwrap().to_string()
+  home_path.join(".r34_manager/database.db").to_str().unwrap().to_string()
 }
 const DB_PASSWORD: &str = "password";
 
