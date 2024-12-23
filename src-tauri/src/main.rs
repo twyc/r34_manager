@@ -7,7 +7,6 @@ use db::crud::{create_creator, read_creators, update_creator, delete_creator,  c
     update_blacklisted_creator,
     delete_blacklisted_creator};
 
-
 fn main() {
     println!("Starting application");
     

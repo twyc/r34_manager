@@ -2,11 +2,12 @@ use rusqlite::{params, Result};
 use serde::Serialize; 
 use crate::db::connection::get_connection;
 
-#[derive(Serialize)] // This allows Rust to convert the struct into a JSON object
+#[derive(Serialize)] 
 pub struct Creator {
     id: i32,
     name: String,
     homepage: String,
+    rate: i32,
 }
 
 #[derive(Serialize)]
@@ -18,14 +19,16 @@ pub struct BlacklistedCreator {
 }
 
 #[tauri::command]
-pub fn create_creator(name: String, homepage: String) -> Result<String, String> {
+pub fn create_creator(name: String, homepage: String, rate: i32) -> Result<String, String> {
     let conn = get_connection().map_err(|e| e.to_string())?;
     conn.execute(
-        "INSERT INTO creators (name, homepage) VALUES (?1, ?2)",
-        params![name, homepage],
-    ).map_err(|e| e.to_string())?;
+        "INSERT INTO creators (name, homepage, rate) VALUES (?1, ?2, ?3)",
+        params![name, homepage, rate],
+    )
+    .map_err(|e| e.to_string())?;
     Ok("Creator added successfully".to_string())
 }
+
 
 #[tauri::command]
 pub fn read_creators() -> Result<Vec<Creator>, String> {
@@ -34,7 +37,7 @@ pub fn read_creators() -> Result<Vec<Creator>, String> {
         e.to_string()
     })?;
     
-    let mut stmt = conn.prepare("SELECT id, name, homepage FROM creators").map_err(|e| {
+    let mut stmt = conn.prepare("SELECT id, name, homepage, rate FROM creators").map_err(|e| {
         println!("Prepare error: {}", e);
         e.to_string()
     })?;
@@ -44,6 +47,7 @@ pub fn read_creators() -> Result<Vec<Creator>, String> {
             id: row.get(0)?,
             name: row.get(1)?,
             homepage: row.get(2)?,
+            rate: row.get(3)?,
         })
     })
     .map_err(|e| {
@@ -58,12 +62,13 @@ pub fn read_creators() -> Result<Vec<Creator>, String> {
 }
 
 #[tauri::command]
-pub fn update_creator(id: i32, name: String, homepage: String) -> Result<String, String> {
+pub fn update_creator(id: i32, name: String, homepage: String, rate: i32) -> Result<String, String> {
     let conn = get_connection().map_err(|e| e.to_string())?;
     conn.execute(
-        "UPDATE creators SET name = ?1, homepage = ?2 WHERE id = ?3",
-        params![name, homepage, id],
-    ).map_err(|e| e.to_string())?;
+        "UPDATE creators SET name = ?1, homepage = ?2, rate = ?3 WHERE id = ?4",
+        params![name, homepage, rate, id],
+    )
+    .map_err(|e| e.to_string())?;
     Ok("Creator updated successfully".to_string())
 }
 
@@ -80,7 +85,10 @@ pub fn delete_creator(id: i32) -> Result<String, String> {
         "DELETE FROM creators WHERE id = ?1",
         params![id],
     );
-    
+
+    conn.execute("DELETE FROM sqlite_sequence WHERE name = 'creators'", [])
+        .map_err(|e| e.to_string())?;
+
     match result {
         Ok(rows) => {
             println!("Deleted {} rows", rows);
@@ -145,5 +153,8 @@ pub fn delete_blacklisted_creator(id: i32) -> Result<String, String> {
         params![id],
     )
     .map_err(|e| e.to_string())?;
+
+    conn.execute("DELETE FROM sqlite_sequence WHERE name = 'blacklisted_creators'", [])
+        .map_err(|e| e.to_string())?;
     Ok("Blacklisted creator deleted successfully".to_string())
 }

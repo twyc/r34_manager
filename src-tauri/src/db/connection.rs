@@ -7,11 +7,9 @@ pub fn get_db_path() -> String {
 }
 const DB_PASSWORD: &str = "password";
 
-/// Initializes the SQLite database, creates the required tables.
 pub fn initialize_database() -> Result<()> {
   let conn = Connection::open(get_db_path())?;
 
-  // Set the password for the database
   conn.execute_batch(&format!("PRAGMA key = '{}';", DB_PASSWORD))?;
   
   conn.execute_batch(
@@ -19,7 +17,8 @@ pub fn initialize_database() -> Result<()> {
         CREATE TABLE IF NOT EXISTS creators (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            homepage TEXT
+            homepage TEXT,
+            rate INTEGER DEFAULT 0 CHECK(rate BETWEEN 0 AND 10)
         );
 
         -- Table: price_history
@@ -62,15 +61,12 @@ pub fn initialize_database() -> Result<()> {
   Ok(())
 }
 
-/// Returns a connection to the SQLite database
-// In connection.rs
 pub fn get_connection() -> Result<Connection> {
   let db_path = get_db_path();
-  println!("Attempting to connect to database at: {}", db_path); // Add this
-  
-  // Check if file exists
+  println!("Attempting to connect to database at: {}", db_path); 
+
   if !std::path::Path::new(&db_path).exists() {
-      println!("Database file does not exist!"); // Add this
+      println!("Database file does not exist!");
       initialize_database()?;
   }
   
