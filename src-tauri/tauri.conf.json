@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "r34_manager",
+  "productName": "R34 Manager",
   "version": "0.2.0",
   "identifier": "com.r34manager.app",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "r34_manager",
+        "title": "R34 Manager",
         "width": 1280,
         "height": 720
       }
