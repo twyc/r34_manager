@@ -25,7 +25,7 @@ pub struct BlacklistedCreator {
 pub struct InterestingLink {
     pub id: i32,
     pub url: String,
-    pub source: Option<String>,
+    pub source: String,
     pub downloaded: bool,
     pub date: Option<String>,
 }
@@ -268,18 +268,17 @@ pub fn delete_blacklisted_creator(id: i32) -> Result<String, String> {
 #[tauri::command]
 pub fn create_interesting_link(
     url: String,
-    source: Option<String>,
+    source: String,
     downloaded: bool,
     date: Option<String>,
 ) -> Result<String, String> {
     let safe_url = sanitize_urls(&url).ok_or("Invalid URL input")?;
-    let safe_source = source.map(|s| sanitize_input(&s)).flatten();
-    let safe_date = date.map(|d| sanitize_input(&d)).flatten();
+    let safe_source = sanitize_input(&source);
 
     let conn = get_connection().map_err(|e| e.to_string())?;
     conn.execute(
         "INSERT INTO interesting_links (url, source, downloaded, date) VALUES (?1, ?2, ?3, ?4)",
-        params![safe_url, safe_source, downloaded, safe_date],
+        params![safe_url, safe_source, downloaded, date],
     ).map_err(|e| format!("Insert error: {}", e))?;
 
     Ok("Interesting link added successfully".to_string())
@@ -312,19 +311,21 @@ pub fn read_interesting_links() -> Result<Vec<InterestingLink>, String> {
 pub fn update_interesting_link(
     id: i32, 
     url: String, 
-    source: Option<String>, 
+    source: String, 
     downloaded: bool, 
     date: Option<String>
 ) -> Result<String, String> {
-    let safe_id = if id > 0 { id } else { 0 };
+    if id <= 0 {
+        return Err("Invalid ID".to_string());
+    }
+
     let safe_url = sanitize_urls(&url);
-    let safe_source = source.map(|s| sanitize_input(&s)).flatten();
-    let safe_date = date.map(|d| sanitize_input(&d)).flatten();
+    let safe_source =  sanitize_input(&source);
 
     let conn = get_connection().map_err(|e| e.to_string())?;
     conn.execute(
         "UPDATE interesting_links SET url = ?1, source = ?2, downloaded = ?3, date = ?4 WHERE id = ?5",
-        params![safe_url, safe_source, downloaded, safe_date, safe_id],
+        params![safe_url, safe_source, downloaded, date, id],
     )
     .map_err(|e| e.to_string())?;
     Ok("Interesting link updated successfully".to_string())
