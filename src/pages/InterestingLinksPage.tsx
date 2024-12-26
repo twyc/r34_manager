@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useNavigate } from "react-router-dom";
+import DOMPurify from "dompurify";
 
 type InterestingLink = {
   id: number;
@@ -88,6 +89,21 @@ const InterestingLinksPage = () => {
     loadInterestingLinks();
   }, []);
 
+  const onQueryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitizedInput = DOMPurify.sanitize(e.target.value);
+    handleSearch(sanitizedInput);
+  };
+
+  const onUrlInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitizedInput = DOMPurify.sanitize(e.target.value);
+    setUrl(sanitizedInput);
+  };
+
+  const onSourceInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitizedInput = DOMPurify.sanitize(e.target.value);
+    setSource(sanitizedInput);
+  };
+
   return (
     <div className="p-6">
       <button
@@ -104,7 +120,7 @@ const InterestingLinksPage = () => {
           type="text"
           placeholder="Search links..."
           value={searchQuery}
-          onChange={(e) => handleSearch(e.target.value)}
+          onChange={(e) => onQueryInputChange(e)}
           className="px-4 py-2 border rounded-md w-full"
         />
       </div>
@@ -115,7 +131,7 @@ const InterestingLinksPage = () => {
             type="url"
             placeholder="URL"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            onChange={(e) => onUrlInputChange(e)}
             className="px-4 py-2 border rounded-md"
             required
           />
@@ -123,7 +139,7 @@ const InterestingLinksPage = () => {
             type="text"
             placeholder="Source"
             value={source}
-            onChange={(e) => setSource(e.target.value)}
+            onChange={(e) => onSourceInputChange(e)}
             className="px-4 py-2 border rounded-md"
           />
           <label className="flex items-center space-x-2">

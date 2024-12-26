@@ -1,6 +1,8 @@
 use rusqlite::{params, Result};
 use serde::Serialize; 
 use crate::db::connection::get_connection;
+use regex::Regex;
+use url::Url;
 
 #[derive(Serialize)] 
 pub struct Creator {
@@ -28,17 +30,36 @@ pub struct InterestingLink {
     pub date: Option<String>,
 }
 
+fn sanitize_input(input: &str) -> Option<String> {
+    let re = Regex::new(r"^[a-zA-Z0-9\s]*$").unwrap(); 
+    if re.is_match(input) {
+        Some(input.to_string())
+    } else {
+        None
+    }
+}
+
+fn sanitize_urls(homepage: &str) -> Option<String> {
+    if Url::parse(homepage).is_ok() {
+        Some(homepage.to_string())
+    } else {
+        None
+    }
+}
+
 #[tauri::command]
 pub fn create_creator(name: String, homepage: String, rate: i32) -> Result<String, String> {
+    let safe_name = sanitize_input(&name).ok_or("Invalid name input")?;
+    let safe_homepage = sanitize_urls(&homepage).ok_or("Invalid homepage input")?;
+    let safe_rate = if rate >= 0 && rate <= 10 { rate } else { return Err("Rate must be between 0 and 10".to_string()); };
+
     let conn = get_connection().map_err(|e| e.to_string())?;
     conn.execute(
         "INSERT INTO creators (name, homepage, rate) VALUES (?1, ?2, ?3)",
-        params![name, homepage, rate],
-    )
-    .map_err(|e| e.to_string())?;
+        params![safe_name, safe_homepage, safe_rate],
+    ).map_err(|e| format!("Database error: {}", e))?;
     Ok("Creator added successfully".to_string())
 }
-
 
 #[tauri::command]
 pub fn read_creators() -> Result<Vec<Creator>, String> {
@@ -73,19 +94,32 @@ pub fn read_creators() -> Result<Vec<Creator>, String> {
 
 #[tauri::command]
 pub fn update_creator(id: i32, name: String, homepage: String, rate: i32) -> Result<String, String> {
+    if id <= 0 {
+        return Err("Invalid ID".to_string());
+    }
+    let safe_name = sanitize_input(&name).ok_or("Invalid name input")?;
+    let safe_homepage = sanitize_urls(&homepage).ok_or("Invalid homepage input")?;
+    let safe_rate = if rate >= 0 && rate <= 10 { rate } else { return Err("Rate must be between 0 and 10".to_string()); };
+
     let conn = get_connection().map_err(|e| e.to_string())?;
-    conn.execute(
+    let rows_affected = conn.execute(
         "UPDATE creators SET name = ?1, homepage = ?2, rate = ?3 WHERE id = ?4",
-        params![name, homepage, rate, id],
-    )
-    .map_err(|e| e.to_string())?;
+        params![safe_name, safe_homepage, safe_rate, id],
+    ).map_err(|e| format!("Database error: {}", e))?;
+
+    if rows_affected == 0 {
+        return Err("No creator found with the specified ID".to_string());
+    }
+
     Ok("Creator updated successfully".to_string())
 }
 
 #[tauri::command]
 pub fn delete_creator(id: i32) -> Result<String, String> {
-    println!("Delete creator called with id: {}", id);
-    
+    if id <= 0 {
+        return Err("Invalid ID".to_string());
+    }
+
     let conn = get_connection().map_err(|e| {
         println!("Connection error: {}", e);
         e.to_string()
@@ -110,6 +144,7 @@ pub fn delete_creator(id: i32) -> Result<String, String> {
         }
     }
 }
+
 #[tauri::command]
 pub fn create_blacklisted_creator(
     creator_id: i32,
@@ -118,12 +153,13 @@ pub fn create_blacklisted_creator(
 ) -> Result<String, String> {
     println!("create_blacklisted_creator called with creator_id: {}, reason: {}, date: {}", creator_id, reason, date);
 
+    let safe_reason = sanitize_input(&reason).ok_or("Invalid reason input")?;
+
     let conn = get_connection().map_err(|e| {
         println!("Connection error: {}", e);
         e.to_string()
     })?;
 
-    // Validate creator_id
     let creator_exists: bool = conn
         .prepare("SELECT EXISTS(SELECT 1 FROM creators WHERE id = ?1)")
         .map_err(|e| {
@@ -144,7 +180,7 @@ pub fn create_blacklisted_creator(
 
     conn.execute(
         "INSERT INTO blacklisted_creators (creator_id, reason, date) VALUES (?1, ?2, ?3)",
-        params![creator_id, reason, date],
+        params![creator_id, safe_reason, date],
     )
     .map_err(|e| {
         println!("Insert error: {}", e);
@@ -154,7 +190,6 @@ pub fn create_blacklisted_creator(
     println!("Blacklisted creator added successfully");
     Ok("Blacklisted creator added successfully".to_string())
 }
-
 
 #[tauri::command]
 pub fn read_blacklisted_creators() -> Result<Vec<BlacklistedCreator>, String> {
@@ -194,10 +229,15 @@ pub fn read_blacklisted_creators() -> Result<Vec<BlacklistedCreator>, String> {
 
 #[tauri::command]
 pub fn update_blacklisted_creator(id: i32, creator_id: i32, reason: String, date: String) -> Result<String, String> {
+    let safe_id = if id > 0 { id } else { 0 };
+    let safe_creator_id = if creator_id > 0 { creator_id } else { 0 };
+    let safe_reason = sanitize_input(&reason);
+    let safe_date = sanitize_input(&date);
+
     let conn = get_connection().map_err(|e| e.to_string())?;
     conn.execute(
         "UPDATE blacklisted_creators SET creator_id = ?1, reason = ?2, date = ?3 WHERE id = ?4",
-        params![creator_id, reason, date, id],
+        params![safe_creator_id, safe_reason, safe_date, safe_id],
     )
     .map_err(|e| e.to_string())?;
     Ok("Blacklisted creator updated successfully".to_string())
@@ -205,31 +245,43 @@ pub fn update_blacklisted_creator(id: i32, creator_id: i32, reason: String, date
 
 #[tauri::command]
 pub fn delete_blacklisted_creator(id: i32) -> Result<String, String> {
+    if id <= 0 {
+        return Err("Invalid ID".to_string());
+    }
+
     let conn = get_connection().map_err(|e| e.to_string())?;
-    conn.execute(
+    let rows_affected = conn.execute(
         "DELETE FROM blacklisted_creators WHERE id = ?1",
         params![id],
-    )
-    .map_err(|e| e.to_string())?;
+    ).map_err(|e| format!("Database error: {}", e))?;
 
     conn.execute("DELETE FROM sqlite_sequence WHERE name = 'blacklisted_creators'", [])
         .map_err(|e| e.to_string())?;
-    Ok("Blacklisted creator deleted successfully".to_string())
+
+    if rows_affected == 0 {
+        return Err("No blacklisted creator found with the specified ID".to_string());
+    }
+
+    Ok(format!("Successfully deleted {} rows", rows_affected))
 }
 
 #[tauri::command]
 pub fn create_interesting_link(
-    url: String, 
-    source: Option<String>, 
-    downloaded: bool, 
-    date: Option<String>
+    url: String,
+    source: Option<String>,
+    downloaded: bool,
+    date: Option<String>,
 ) -> Result<String, String> {
+    let safe_url = sanitize_urls(&url).ok_or("Invalid URL input")?;
+    let safe_source = source.map(|s| sanitize_input(&s)).flatten();
+    let safe_date = date.map(|d| sanitize_input(&d)).flatten();
+
     let conn = get_connection().map_err(|e| e.to_string())?;
     conn.execute(
         "INSERT INTO interesting_links (url, source, downloaded, date) VALUES (?1, ?2, ?3, ?4)",
-        params![url, source, downloaded, date],
-    )
-    .map_err(|e| e.to_string())?;
+        params![safe_url, safe_source, downloaded, safe_date],
+    ).map_err(|e| format!("Insert error: {}", e))?;
+
     Ok("Interesting link added successfully".to_string())
 }
 
@@ -264,25 +316,39 @@ pub fn update_interesting_link(
     downloaded: bool, 
     date: Option<String>
 ) -> Result<String, String> {
+    let safe_id = if id > 0 { id } else { 0 };
+    let safe_url = sanitize_urls(&url);
+    let safe_source = source.map(|s| sanitize_input(&s)).flatten();
+    let safe_date = date.map(|d| sanitize_input(&d)).flatten();
+
     let conn = get_connection().map_err(|e| e.to_string())?;
     conn.execute(
         "UPDATE interesting_links SET url = ?1, source = ?2, downloaded = ?3, date = ?4 WHERE id = ?5",
-        params![url, source, downloaded, date, id],
+        params![safe_url, safe_source, downloaded, safe_date, safe_id],
     )
     .map_err(|e| e.to_string())?;
     Ok("Interesting link updated successfully".to_string())
 }
 
+
 #[tauri::command]
 pub fn delete_interesting_link(id: i32) -> Result<String, String> {
+    if id <= 0 {
+        return Err("Invalid ID".to_string());
+    }
+
     let conn = get_connection().map_err(|e| e.to_string())?;
-    conn.execute(
+    let rows_affected = conn.execute(
         "DELETE FROM interesting_links WHERE id = ?1",
         params![id],
-    )
-    .map_err(|e| e.to_string())?;
+    ).map_err(|e| format!("Database error: {}", e))?;
 
     conn.execute("DELETE FROM sqlite_sequence WHERE name = 'interesting_links'", [])
         .map_err(|e| e.to_string())?;
-    Ok("Interesting link deleted successfully".to_string())
+
+    if rows_affected == 0 {
+        return Err("No interesting link found with the specified ID".to_string());
+    }
+
+    Ok(format!("Successfully deleted {} rows", rows_affected))
 }

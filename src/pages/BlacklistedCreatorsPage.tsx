@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import DOMPurify from "dompurify";
 import InfoModal from "../components/InfoModal";
 
 type Creator = {
@@ -79,6 +80,11 @@ const BlacklistedCreatorsPage = () => {
     loadCreators();
   }, []);
 
+  const onReasonInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitizedInput = DOMPurify.sanitize(e.target.value);
+    setReason(sanitizedInput);
+  };
+
   return (
     <div className="p-6">
       {infoModal.visible && (
@@ -110,7 +116,7 @@ const BlacklistedCreatorsPage = () => {
             type="text"
             placeholder="Reason"
             value={reason}
-            onChange={(e) => setReason(e.target.value)}
+            onChange={(e) => onReasonInputChange(e)}
             className="px-4 py-2 border rounded-md"
             required
           />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import DOMPurify from "dompurify";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ConfirmModal from "./ConfirmModal"; // Import your custom modal
@@ -73,6 +74,16 @@ const CreatorForm = ({
     clearEdit();
   };
 
+  const onNameInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitizedInput = DOMPurify.sanitize(e.target.value);
+    setName(sanitizedInput);
+  };
+
+  const onHomepageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitizedInput = DOMPurify.sanitize(e.target.value);
+    setHomepage(sanitizedInput);
+  };
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -95,7 +106,7 @@ const CreatorForm = ({
         <input
           type="text"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => onNameInputChange(e)}
           className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           required
         />
@@ -107,7 +118,7 @@ const CreatorForm = ({
         <input
           type="text"
           value={homepage}
-          onChange={(e) => setHomepage(e.target.value)}
+          onChange={(e) => onHomepageInputChange(e)}
           className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
           required
         />
