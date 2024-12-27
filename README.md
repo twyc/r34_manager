@@ -27,3 +27,7 @@ I think the result was pretty decent so I'm sharing with y'all
 ### How to run
 
 `bun run tauri dev`
+
+### How to build
+
+`cargo tauri build`
