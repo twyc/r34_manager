@@ -1,6 +1,6 @@
+use crate::db::connection::get_connection;
 use rusqlite::{params, Result};
 use serde::Serialize; 
-use crate::db::connection::get_connection;
 use regex::Regex;
 use url::Url;
 
