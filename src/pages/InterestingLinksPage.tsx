@@ -23,6 +23,7 @@ const InterestingLinksPage = () => {
   const [source, setSource] = useState("");
   const [downloaded, setDownloaded] = useState(false);
   const [date, setDate] = useState("");
+  const [showDownloaded, setShowDownloaded] = useState(false);
   const navigate = useNavigate();
 
   const isSafe = false;
@@ -36,14 +37,28 @@ const InterestingLinksPage = () => {
   const handleSearch = (query: string) => {
     setSearchQuery(query);
 
-    const filtered = interestingLinks.filter((link) =>
-      [link.url, link.source, link.date]
-        .filter(Boolean)
-        .some((field) => field!.toLowerCase().includes(query.toLowerCase()))
-    );
+    const filtered = interestingLinks
+      .filter((link) => (showDownloaded ? true : !link.downloaded))
+      .filter((link) =>
+        [link.url, link.source, link.date]
+          .filter(Boolean)
+          .some((field) => field!.toLowerCase().includes(query.toLowerCase()))
+      );
 
     setFilteredLinks(filtered);
   };
+
+  const handleToggleDownloaded = () => {
+    setShowDownloaded((prev) => !prev);
+  };
+
+  useEffect(() => {
+    setFilteredLinks(
+      interestingLinks.filter((link) =>
+        showDownloaded ? true : !link.downloaded
+      )
+    );
+  }, [showDownloaded, interestingLinks]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,7 +159,7 @@ const InterestingLinksPage = () => {
 
       <h1 className="text-2xl font-bold mb-4">Manage Interesting Links</h1>
 
-      <div className="mb-4">
+      <div className="mb-4 flex items-center space-x-4">
         <input
           type="text"
           placeholder="Search links..."
@@ -152,6 +167,14 @@ const InterestingLinksPage = () => {
           onChange={(e) => onQueryInputChange(e)}
           className="px-4 py-2 border rounded-md w-full"
         />
+        <label className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            checked={showDownloaded}
+            onChange={handleToggleDownloaded}
+          />
+          <span>Show Downloaded</span>
+        </label>
       </div>
 
       <form onSubmit={handleSubmit} className="mb-4">
@@ -199,9 +222,6 @@ const InterestingLinksPage = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 URL
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -221,7 +241,6 @@ const InterestingLinksPage = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredLinks.map((link) => (
               <tr key={link.id}>
-                <td className="px-6 py-4 whitespace-nowrap">{link.id}</td>
                 <td
                   className="px-6 py-4 whitespace-nowrap cursor-pointer hover:text-blue-600"
                   onClick={() => copyToClipboard(link.url)}
