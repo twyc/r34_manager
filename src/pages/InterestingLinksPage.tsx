@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
+import InfoModal from "../components/InfoModal";
 
 type InterestingLink = {
   id: number;
@@ -108,8 +109,32 @@ const InterestingLinksPage = () => {
     setSource(sanitizedInput);
   };
 
+  const [infoModal, setInfoModal] = useState<{
+    visible: boolean;
+    message: string;
+  }>({
+    visible: false,
+    message: "",
+  });
+
+  const copyToClipboard = useCallback(async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setInfoModal({ visible: true, message: "Copied to clipboard" });
+    } catch (error) {
+      setInfoModal({ visible: true, message: "Failed to copy to clipboard" });
+    }
+  }, []);
+
   return (
     <div className="p-6">
+      {infoModal.visible && (
+        <InfoModal
+          title="Information"
+          message={infoModal.message}
+          onOk={() => setInfoModal({ visible: false, message: "" })}
+        />
+      )}
       <button
         className="px-4 py-2 bg-blue-500 text-white rounded-md mb-4 hover:bg-blue-600"
         onClick={() => navigate("/")}
@@ -197,7 +222,12 @@ const InterestingLinksPage = () => {
             {filteredLinks.map((link) => (
               <tr key={link.id}>
                 <td className="px-6 py-4 whitespace-nowrap">{link.id}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{link.url}</td>
+                <td
+                  className="px-6 py-4 whitespace-nowrap cursor-pointer hover:text-blue-600"
+                  onClick={() => copyToClipboard(link.url)}
+                >
+                  {link.url}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {link.source || "N/A"}
                 </td>

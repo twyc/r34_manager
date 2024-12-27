@@ -162,7 +162,7 @@ const CreatorsPage: React.FC = () => {
                       {creator.name}
                     </td>
                     <td
-                      className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 cursor-pointer underline hover:text-blue-800"
+                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 cursor-pointer hover:text-blue-600"
                       onClick={() => copyToClipboard(creator.homepage)}
                     >
                       {creator.homepage}
