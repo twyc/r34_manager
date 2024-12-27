@@ -19,5 +19,11 @@ I think the result was pretty decent so I'm sharing with y'all
 ### Dev Dependencies
 
 - All of the above
+- Bun
 - Rust
 - Tauri
+- Node 18+
+
+### How to run
+
+`bun run tauri dev`
