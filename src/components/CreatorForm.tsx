@@ -28,6 +28,8 @@ const CreatorForm = ({
   const [rate, setRate] = useState(0);
   const [isModalVisible, setModalVisible] = useState(false);
 
+  const isSafe = false;
+
   useEffect(() => {
     if (editCreator) {
       setName(editCreator.name);
@@ -49,10 +51,11 @@ const CreatorForm = ({
           name,
           homepage,
           rate,
+          safe: isSafe,
         });
         toast.success("Creator updated successfully!");
       } else {
-        await invoke("create_creator", { name, homepage, rate });
+        await invoke("create_creator", { name, homepage, rate, safe: isSafe });
         toast.success("Creator added successfully!");
       }
       reloadCreators();

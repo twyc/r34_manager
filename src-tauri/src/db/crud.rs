@@ -48,9 +48,14 @@ fn sanitize_urls(homepage: &str) -> Option<String> {
 }
 
 #[tauri::command]
-pub fn create_creator(name: String, homepage: String, rate: i32) -> Result<String, String> {
-    let safe_name = sanitize_input(&name).ok_or("Invalid name input")?;
-    let safe_homepage = sanitize_urls(&homepage).ok_or("Invalid homepage input")?;
+pub fn create_creator(
+    name: String, 
+    homepage: String, 
+    rate: i32,
+    safe: bool
+) -> Result<String, String> {
+    let safe_name = if safe {sanitize_input(&name).ok_or("Invalid name input")?} else{name};
+    let safe_homepage = if safe{sanitize_urls(&homepage).ok_or("Invalid homepage input")?} else {homepage};
     let safe_rate = if rate >= 0 && rate <= 10 { rate } else { return Err("Rate must be between 0 and 10".to_string()); };
 
     let conn = get_connection().map_err(|e| e.to_string())?;
@@ -69,7 +74,7 @@ pub fn read_creators() -> Result<Vec<Creator>, String> {
     })?;
     
     let mut stmt = conn.prepare("SELECT id, name, homepage, rate FROM creators").map_err(|e| {
-        println!("Prepare error: {}", e);
+        println!("[-] Prepare error: {}", e);
         e.to_string()
     })?;
     
@@ -88,17 +93,23 @@ pub fn read_creators() -> Result<Vec<Creator>, String> {
     .filter_map(|row| row.ok())
     .collect();
     
-    println!("Successfully read creators");
+    println!("[+] Successfully read creators");
     Ok(creators)
 }
 
 #[tauri::command]
-pub fn update_creator(id: i32, name: String, homepage: String, rate: i32) -> Result<String, String> {
+pub fn update_creator(
+    id: i32, 
+    name: String, 
+    homepage: String, 
+    rate: i32, 
+    safe: bool
+) -> Result<String, String> {
     if id <= 0 {
-        return Err("Invalid ID".to_string());
+        return Err("[-] Invalid ID".to_string());
     }
-    let safe_name = sanitize_input(&name).ok_or("Invalid name input")?;
-    let safe_homepage = sanitize_urls(&homepage).ok_or("Invalid homepage input")?;
+    let safe_name = if safe {sanitize_input(&name).ok_or("Invalid name input")?} else {name};
+    let safe_homepage = if safe{sanitize_urls(&homepage).ok_or("Invalid homepage input")?} else {homepage};
     let safe_rate = if rate >= 0 && rate <= 10 { rate } else { return Err("Rate must be between 0 and 10".to_string()); };
 
     let conn = get_connection().map_err(|e| e.to_string())?;
@@ -108,10 +119,10 @@ pub fn update_creator(id: i32, name: String, homepage: String, rate: i32) -> Res
     ).map_err(|e| format!("Database error: {}", e))?;
 
     if rows_affected == 0 {
-        return Err("No creator found with the specified ID".to_string());
+        return Err("[-] No creator found with the specified ID".to_string());
     }
 
-    Ok("Creator updated successfully".to_string())
+    Ok("[+] Creator updated successfully".to_string())
 }
 
 #[tauri::command]
@@ -121,7 +132,7 @@ pub fn delete_creator(id: i32) -> Result<String, String> {
     }
 
     let conn = get_connection().map_err(|e| {
-        println!("Connection error: {}", e);
+        println!("[-] Connection error: {}", e);
         e.to_string()
     })?;
     
@@ -135,11 +146,11 @@ pub fn delete_creator(id: i32) -> Result<String, String> {
 
     match result {
         Ok(rows) => {
-            println!("Deleted {} rows", rows);
-            Ok(format!("Successfully deleted {} rows", rows))
+            println!("[+] Deleted {} rows", rows);
+            Ok(format!("[+] Successfully deleted {} rows", rows))
         }
         Err(e) => {
-            println!("Delete error: {}", e);
+            println!("[-] Delete error: {}", e);
             Err(e.to_string())
         }
     }
@@ -150,10 +161,11 @@ pub fn create_blacklisted_creator(
     creator_id: i32,
     reason: String,
     date: String,
+    safe: bool,
 ) -> Result<String, String> {
     println!("create_blacklisted_creator called with creator_id: {}, reason: {}, date: {}", creator_id, reason, date);
 
-    let safe_reason = sanitize_input(&reason).ok_or("Invalid reason input")?;
+    let safe_reason =  if safe {sanitize_input(&reason).ok_or("Invalid reason input")?} else {reason};
 
     let conn = get_connection().map_err(|e| {
         println!("Connection error: {}", e);
@@ -168,14 +180,14 @@ pub fn create_blacklisted_creator(
         })?
         .query_row(params![creator_id], |row| row.get(0))
         .map_err(|e| {
-            println!("Query error for creator existence check: {}", e);
+            println!("[-] Query error for creator existence check: {}", e);
             e.to_string()
         })?;
     println!("Creator existence check result: {}", creator_exists);
 
     if !creator_exists {
-        println!("Invalid creator ID: {}", creator_id);
-        return Err("Invalid creator ID".to_string());
+        println!("[-] Invalid creator ID: {}", creator_id);
+        return Err("[-] Invalid creator ID".to_string());
     }
 
     conn.execute(
@@ -187,8 +199,8 @@ pub fn create_blacklisted_creator(
         e.to_string()
     })?;
 
-    println!("Blacklisted creator added successfully");
-    Ok("Blacklisted creator added successfully".to_string())
+    println!("[+] Blacklisted creator added successfully");
+    Ok("[+] Blacklisted creator added successfully".to_string())
 }
 
 #[tauri::command]
@@ -223,16 +235,22 @@ pub fn read_blacklisted_creators() -> Result<Vec<BlacklistedCreator>, String> {
         .filter_map(|row| row.ok())
         .collect::<Vec<_>>();
 
-    println!("Successfully read blacklisted creators");
+    println!("[+] Successfully read blacklisted creators");
     Ok(blacklisted_creators)
 }
 
 #[tauri::command]
-pub fn update_blacklisted_creator(id: i32, creator_id: i32, reason: String, date: String) -> Result<String, String> {
+pub fn update_blacklisted_creator(
+    id: i32, 
+    creator_id: i32,
+    reason: String, 
+    date: String, 
+    safe: bool
+) -> Result<String, String> {
     let safe_id = if id > 0 { id } else { 0 };
     let safe_creator_id = if creator_id > 0 { creator_id } else { 0 };
-    let safe_reason = sanitize_input(&reason);
-    let safe_date = sanitize_input(&date);
+    let safe_reason = if safe{ sanitize_input(&reason)} else {Some(reason)};
+    let safe_date = if safe {sanitize_input(&date)} else {Some(date)};
 
     let conn = get_connection().map_err(|e| e.to_string())?;
     conn.execute(
@@ -240,7 +258,7 @@ pub fn update_blacklisted_creator(id: i32, creator_id: i32, reason: String, date
         params![safe_creator_id, safe_reason, safe_date, safe_id],
     )
     .map_err(|e| e.to_string())?;
-    Ok("Blacklisted creator updated successfully".to_string())
+    Ok("[+] Blacklisted creator updated successfully".to_string())
 }
 
 #[tauri::command]
@@ -262,7 +280,7 @@ pub fn delete_blacklisted_creator(id: i32) -> Result<String, String> {
         return Err("No blacklisted creator found with the specified ID".to_string());
     }
 
-    Ok(format!("Successfully deleted {} rows", rows_affected))
+    Ok(format!("[+] Successfully deleted {} rows", rows_affected))
 }
 
 #[tauri::command]
@@ -271,9 +289,10 @@ pub fn create_interesting_link(
     source: String,
     downloaded: bool,
     date: Option<String>,
+    safe: bool
 ) -> Result<String, String> {
-    let safe_url = sanitize_urls(&url).ok_or("Invalid URL input")?;
-    let safe_source = sanitize_input(&source);
+    let safe_url = if safe {sanitize_urls(&url).ok_or("Invalid URL input")?} else {url};
+    let safe_source = if safe{sanitize_input(&source)} else {Some(source)};
 
     let conn = get_connection().map_err(|e| e.to_string())?;
     conn.execute(
@@ -281,7 +300,7 @@ pub fn create_interesting_link(
         params![safe_url, safe_source, downloaded, date],
     ).map_err(|e| format!("Insert error: {}", e))?;
 
-    Ok("Interesting link added successfully".to_string())
+    Ok("[+] Interesting link added successfully".to_string())
 }
 
 #[tauri::command]
@@ -313,14 +332,15 @@ pub fn update_interesting_link(
     url: String, 
     source: String, 
     downloaded: bool, 
-    date: Option<String>
+    date: Option<String>,
+    safe: bool,
 ) -> Result<String, String> {
     if id <= 0 {
         return Err("Invalid ID".to_string());
     }
 
-    let safe_url = sanitize_urls(&url);
-    let safe_source =  sanitize_input(&source);
+    let safe_url = if safe{sanitize_urls(&url)} else {Some(url)};
+    let safe_source =  if safe {sanitize_input(&source)} else {Some(source)};
 
     let conn = get_connection().map_err(|e| e.to_string())?;
     conn.execute(
@@ -328,7 +348,7 @@ pub fn update_interesting_link(
         params![safe_url, safe_source, downloaded, date, id],
     )
     .map_err(|e| e.to_string())?;
-    Ok("Interesting link updated successfully".to_string())
+    Ok("[+] Interesting link updated successfully".to_string())
 }
 
 
@@ -351,5 +371,5 @@ pub fn delete_interesting_link(id: i32) -> Result<String, String> {
         return Err("No interesting link found with the specified ID".to_string());
     }
 
-    Ok(format!("Successfully deleted {} rows", rows_affected))
+    Ok(format!("[+] Successfully deleted {} rows", rows_affected))
 }

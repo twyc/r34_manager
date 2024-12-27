@@ -17,7 +17,7 @@ type BlacklistedCreator = {
   date: string;
   name: string;
 };
-
+const isSafe = false;
 const BlacklistedCreatorsPage = () => {
   const [blacklistedCreators, setBlacklistedCreators] = useState<
     BlacklistedCreator[]
@@ -63,6 +63,7 @@ const BlacklistedCreatorsPage = () => {
         creatorId: parseInt(creatorId),
         reason,
         date,
+        safe: isSafe,
       });
       loadBlacklistedCreators();
     } catch (error) {

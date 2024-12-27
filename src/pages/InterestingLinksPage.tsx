@@ -24,6 +24,8 @@ const InterestingLinksPage = () => {
   const [date, setDate] = useState("");
   const navigate = useNavigate();
 
+  const isSafe = false;
+
   const loadInterestingLinks = async () => {
     const links: InterestingLink[] = await invoke("read_interesting_links");
     setInterestingLinks(links);
@@ -55,6 +57,7 @@ const InterestingLinksPage = () => {
         source,
         downloaded,
         date,
+        safe: isSafe,
       });
     } else {
       await invoke("create_interesting_link", {
@@ -62,6 +65,7 @@ const InterestingLinksPage = () => {
         source,
         downloaded,
         date,
+        safe: isSafe,
       });
     }
     setUrl("");

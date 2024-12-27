@@ -18,16 +18,13 @@ use db::crud::{
 };
 
 fn main() {
-    println!("Starting application");
-    
-    let commands = vec!["create_creator", "read_creators", "update_creator", "delete_creator"];
-    println!("Registered commands: {:?}", commands);
+    println!("[+] Starting application...");
     
     if let Err(e) = initialize_database() {
-        eprintln!("Error initializing database: {}", e);
+        eprintln!("[-] Error initializing database: {}", e);
         return;
     }
-    println!("Database initialized successfully");
+    println!("[+] Database initialized successfully");
 
     Builder::default()
         .invoke_handler(tauri::generate_handler![
@@ -45,9 +42,9 @@ fn main() {
             delete_interesting_link,
         ])
         .setup(|_app| {
-            println!("Tauri app setup complete");
+            println!("[+] Tauri app setup complete");
             Ok(())
         })
         .run(generate_context!())
-        .expect("error while running Tauri application");
+        .expect("[-] error while running Tauri application");
 }
