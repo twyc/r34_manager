@@ -2,6 +2,8 @@
 
 #### Sup?
 
+##### Question: are you a data hoarder? If yes, t his app can be useful
+
 So yeah, this is an app to manage information about web content. I made it with racy content in mind, but you can use with whatever type you want, I guess
 
 I think the result was pretty decent so I'm sharing with y'all

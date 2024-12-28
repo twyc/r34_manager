@@ -1,6 +1,6 @@
 [package]
 name = "r34_manager"
-version = "0.2.1"
+version = "0.3.0"
 description = "A Tauri App to manage content links and creators"
 authors = ["twyc"]
 edition = "2021"

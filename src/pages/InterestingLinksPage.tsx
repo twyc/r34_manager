@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useNavigate } from "react-router-dom";
 import DOMPurify from "dompurify";
 import InfoModal from "../components/InfoModal";
 
@@ -22,11 +21,17 @@ const InterestingLinksPage = () => {
   const [url, setUrl] = useState("");
   const [source, setSource] = useState("");
   const [downloaded, setDownloaded] = useState(false);
-  const [date, setDate] = useState("");
   const [showDownloaded, setShowDownloaded] = useState(false);
-  const navigate = useNavigate();
+  const [date, setDate] = useState(() => {
+    const today = new Date();
+    const formattedDate = `${String(today.getDate()).padStart(2, "0")}/${String(
+      today.getMonth() + 1
+    ).padStart(2, "0")}/${today.getFullYear()}`;
+    return formattedDate;
+  });
 
   const isSafe = false;
+  const urlInputRef = useRef<HTMLInputElement>(null);
 
   const loadInterestingLinks = async () => {
     const links: InterestingLink[] = await invoke("read_interesting_links");
@@ -87,9 +92,14 @@ const InterestingLinksPage = () => {
     setUrl("");
     setSource("");
     setDownloaded(false);
-    setDate("");
     setEditLink(null);
     loadInterestingLinks();
+    urlInputRef.current?.focus();
+    setDate(
+      `${String(new Date().getDate()).padStart(2, "0")}/${String(
+        new Date().getMonth() + 1
+      ).padStart(2, "0")}/${new Date().getFullYear()}`
+    );
   };
 
   const handleEdit = (link: InterestingLink) => {
@@ -98,6 +108,9 @@ const InterestingLinksPage = () => {
     setSource(link.source || "");
     setDownloaded(link.downloaded);
     setDate(link.date || "");
+    setTimeout(() => {
+      urlInputRef.current?.focus();
+    }, 100);
   };
 
   const handleDelete = async (id: number) => {
@@ -150,12 +163,6 @@ const InterestingLinksPage = () => {
           onOk={() => setInfoModal({ visible: false, message: "" })}
         />
       )}
-      <button
-        className="px-4 py-2 bg-blue-500 text-white rounded-md mb-4 hover:bg-blue-600"
-        onClick={() => navigate("/")}
-      >
-        Home
-      </button>
 
       <h1 className="text-2xl font-bold mb-4">Manage Interesting Links</h1>
 
@@ -186,6 +193,7 @@ const InterestingLinksPage = () => {
             onChange={(e) => onUrlInputChange(e)}
             className="px-4 py-2 border rounded-md"
             required
+            ref={urlInputRef}
           />
           <input
             type="text"
